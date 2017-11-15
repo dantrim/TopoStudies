@@ -1,0 +1,75 @@
+//std/stl
+#include <cstdlib>
+#include <string>
+#include <iostream>
+using namespace std;
+
+//ROOT
+#include "TChain.h"
+#include "TSystem.h"
+
+//xAOD
+#include "xAODRootAccess/Init.h"
+
+//my
+#include "TopoStudies/ChainHelper.h"
+#include "TopoStudies/TopoTupler.h"
+
+void help()
+{
+    cout << "___________________________________________________" << endl;
+    cout << " ~TopoStudies~" << endl;
+    cout << "" << endl;
+    cout << " Usage: $ ./runTopoStudies -f [filelist/dir/file] [options]" << endl;
+    cout << " Options:" << endl;
+    cout << "   -f          input filelist,dir, or file [required]" << endl;
+    cout << "   -n          number of events to process (default: all)" << endl;
+    cout << "   -d|--dbg    set debug level ON (default: OFF)" << endl;
+    cout << "   -h|--help   print this help message" << endl;
+    cout << "___________________________________________________" << endl;
+}
+
+int main(int argc, char** argv)
+{
+    string filelist = "";
+    int nevents = -1;
+    bool dbg = false;
+
+
+    int optin(1);
+    while(optin < argc) {
+        string opt = argv[optin];
+        if      (opt == "-f") { filelist = argv[++optin]; }
+        else if (opt == "-n") { nevents = atoi(argv[++optin]); }
+        else if (opt == "-d" || opt == "--dbg") { dbg = true; }
+        else if (opt == "-h" || opt == "--help") { help(); return 0; }
+        else {
+            cout << "Unknown command line argument : '" << opt << "'" << endl;
+            return 1;
+        }
+        optin++;
+    }; // while
+
+    if(filelist == "") {
+        cout << "You did not provide an input, exiting" << endl;
+        return 1;
+    }
+
+    cout << " ~TopoStudies~" << endl;
+
+    TChain* chain = new TChain("CollectionTree");
+    int file_err = ChainHelper::addInput(chain, filelist, true);
+    if(file_err) return 1;
+    xAOD::Init("TopoStudies");
+    Long64_t n_entries = chain->GetEntries();
+    chain->ls();
+    if(nevents < 0) nevents = n_entries;
+    topo::TopoTupler* ana = new topo::TopoTupler();
+    ana->set_dbg(dbg);
+    ana->set_filename(filelist);
+    chain->Process(ana, "", nevents);
+
+
+    delete chain;
+    return 0;
+}
