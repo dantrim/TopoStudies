@@ -5,6 +5,7 @@
 #include <sstream>
 #include <math.h>
 #include <vector>
+#include <iomanip>
 #include <fstream>
 using namespace std;
 
@@ -25,7 +26,7 @@ using namespace std;
 //ANA
 using namespace topo;
 
-#define print( ARG ) std::cout << "TopoTupler::" << __FUNCTION__ << "    " << ARG;
+#define print( ARG ) std::cout << std::setw(20) << std::left << "TopoTupler::" << __FUNCTION__ << "    " << ARG;
 #define SET_DUAL_TOOL( TOOLHANDLE, TOOLTYPE, TOOLNAME ) \
     ASG_SET_ANA_TOOL_TYPE(TOOLHANDLE, TOOLTYPE); \
     TOOLHANDLE.setName(TOOLNAME);
@@ -421,7 +422,11 @@ void TopoTupler::Terminate()
     stringstream sx;
     m_output_file->cd();
     m_output_tree->Write(0, TObject::kOverwrite);
+    sx << "----------------------------------------------------\n";
+    print(sx.str()); sx.str("");
     sx << "Output tree saved to : " << m_output_file->GetName() << "\n";
+    print(sx.str()); sx.str("");
+    sx << "----------------------------------------------------\n";
     print(sx.str()); sx.str("");
     m_output_file->Close();
 
