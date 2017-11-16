@@ -160,6 +160,21 @@ void TopoTupler::setup_output_tree()
     m_output_tree->Branch("dphi_ele_met", &m_dphi_ele_met);
     m_output_tree->Branch("dr_muo_jet", &m_dr_muo_jet);
     m_output_tree->Branch("dr_ele_jet", &m_dr_ele_jet);
+
+    // DILEPTON EE
+    m_output_tree->Branch("ee_mll", &m_ee_mll);
+    m_output_tree->Branch("ee_dphi", &m_ee_dphi);
+    m_output_tree->Branch("ee_dr", &m_ee_dr);
+
+    // DILEPTON MM
+    m_output_tree->Branch("mm_mll", &m_mm_mll);
+    m_output_tree->Branch("mm_dphi", &m_mm_dphi);
+    m_output_tree->Branch("mm_dr", &m_mm_dr);
+
+    // DILEPTON EM
+    m_output_tree->Branch("em_mll", &m_em_mll);
+    m_output_tree->Branch("em_dphi", &m_em_dphi);
+    m_output_tree->Branch("em_dr", &m_em_dr);
 }
 //////////////////////////////////////////////////////////////////////////////
 void TopoTupler::get_metadata()
@@ -225,6 +240,9 @@ Bool_t TopoTupler::Process(Long64_t entry)
     fill_tree_jet();
     fill_tree_standard_triggers();
     fill_tree_dangle();
+    fill_tree_dilepton_ee();
+    fill_tree_dilepton_mm();
+    fill_tree_dilepton_em();
 
 
     m_output_tree->Fill();
@@ -415,6 +433,93 @@ void TopoTupler::fill_tree_dangle()
     std::sort(m_dphi_ele_met.begin(), m_dphi_ele_met.end());
     std::sort(m_dr_ele_jet.begin(), m_dr_ele_jet.end());
     std::reverse(m_dr_ele_jet.begin(), m_dr_ele_jet.end());
+}
+//////////////////////////////////////////////////////////////////////////////
+void TopoTupler::fill_tree_dilepton_ee()
+{
+    m_ee_mll.clear();
+    m_ee_dphi.clear();
+    m_ee_dr.clear();
+
+    for(int iel = 0; iel < (int)m_l1_electrons.size(); iel++) {
+        for(int jel = iel+1; jel < (int)m_l1_electrons.size(); jel++) {
+            float dphi = m_l1_electrons.at(iel)->phi() - m_l1_electrons.at(jel)->phi();
+            float deta = m_l1_electrons.at(iel)->eta() - m_l1_electrons.at(jel)->eta();
+            float dr = delta_r(dphi, deta);
+            dphi = std::abs(dphi_mpi_pi(dphi));
+            m_ee_dphi.push_back(dphi);
+            m_ee_dr.push_back(dr);
+            float cosh_deta = cosh(deta);
+            float cos_dphi = cos(dphi);
+            float e0 = m_l1_electrons.at(iel)->eT();
+            float e1 = m_l1_electrons.at(jel)->eT();
+            float m = 2. * e0 * e1 * (cosh_deta - cos_dphi);
+            m = sqrt(m) * gev;
+            m_ee_mll.push_back(m);
+        } // jel
+    } // iel
+    std::sort(m_ee_dphi.begin(), m_ee_dphi.end());
+    std::sort(m_ee_dr.begin(), m_ee_dr.end());
+    std::sort(m_ee_mll.begin(), m_ee_mll.end());
+    std::reverse(m_ee_mll.begin(), m_ee_mll.end());
+}
+//////////////////////////////////////////////////////////////////////////////
+void TopoTupler::fill_tree_dilepton_mm()
+{
+    m_mm_mll.clear();
+    m_mm_dphi.clear();
+    m_mm_dr.clear();
+
+    for(int imu = 0; imu < (int)m_l1_muons.size(); imu++) {
+        for(int jmu = imu+1; jmu < (int)m_l1_muons.size(); jmu++) {
+            float dphi = m_l1_muons.at(imu)->phi() - m_l1_muons.at(jmu)->phi();
+            float deta = m_l1_muons.at(imu)->eta() - m_l1_muons.at(jmu)->eta();
+            float dr = delta_r(dphi, deta);
+            dphi = std::abs(dphi_mpi_pi(dphi));
+            m_mm_dphi.push_back(dphi);
+            m_mm_dr.push_back(dr);
+            float cosh_deta = cosh(deta);
+            float cos_dphi = cos(dphi);
+            float e0 = m_l1_muons.at(imu)->thrValue();
+            float e1 = m_l1_muons.at(jmu)->thrValue();
+            float m = 2. * e0 * e1 * (cosh_deta - cos_dphi);
+            m = sqrt(m) * gev;
+            m_mm_mll.push_back(m);
+        } // jmu
+    } // imu
+    std::sort(m_mm_dphi.begin(), m_mm_dphi.end());
+    std::sort(m_mm_dr.begin(), m_mm_dr.end());
+    std::sort(m_mm_mll.begin(), m_mm_mll.end());
+    std::reverse(m_mm_mll.begin(), m_mm_mll.end());
+}
+//////////////////////////////////////////////////////////////////////////////
+void TopoTupler::fill_tree_dilepton_em()
+{
+    m_em_mll.clear();
+    m_em_dphi.clear();
+    m_em_dr.clear();
+
+    for(int iel = 0; iel < (int)m_l1_electrons.size(); iel++) {
+        for(int imu = 0; imu < (int)m_l1_muons.size(); imu++) {
+            float dphi = m_l1_electrons.at(iel)->phi() - m_l1_muons.at(imu)->phi();
+            float deta = m_l1_electrons.at(iel)->eta() - m_l1_muons.at(imu)->eta();
+            float dr = delta_r(dphi, deta);
+            dphi = std::abs(dphi_mpi_pi(dphi));
+            m_em_dphi.push_back(dphi);
+            m_em_dr.push_back(dr);
+            float cosh_deta = cosh(deta);
+            float cos_dphi = cos(dphi);
+            float e0 = m_l1_electrons.at(iel)->eT();
+            float e1 = m_l1_muons.at(imu)->thrValue();
+            float m = 2. * e0 * e1 * (cosh_deta - cos_dphi);
+            m = sqrt(m) * gev;
+            m_em_mll.push_back(m);
+        } // imu
+    } // iel
+    std::sort(m_em_dphi.begin(), m_em_dphi.end());
+    std::sort(m_em_dr.begin(), m_em_dr.end());
+    std::sort(m_em_mll.begin(), m_em_mll.end());
+    std::reverse(m_em_mll.begin(), m_em_mll.end());
 }
 //////////////////////////////////////////////////////////////////////////////
 void TopoTupler::Terminate()

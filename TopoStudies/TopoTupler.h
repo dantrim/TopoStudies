@@ -77,6 +77,9 @@ namespace topo {
             void fill_tree_jet();
             void fill_tree_standard_triggers();
             void fill_tree_dangle();
+            void fill_tree_dilepton_ee();
+            void fill_tree_dilepton_mm();
+            void fill_tree_dilepton_em();
 
             // TSELECTOR
             virtual Int_t Version() const { return 2; }
@@ -143,6 +146,19 @@ namespace topo {
             std::vector<float> m_dphi_ele_met;
             std::vector<float> m_dr_muo_jet;
             std::vector<float> m_dr_ele_jet;
+
+            // dilepton
+            std::vector<float> m_ee_mll;
+            std::vector<float> m_ee_dphi;
+            std::vector<float> m_ee_dr;
+
+            std::vector<float> m_mm_mll;
+            std::vector<float> m_mm_dphi;
+            std::vector<float> m_mm_dr;
+
+            std::vector<float> m_em_mll;
+            std::vector<float> m_em_dphi;
+            std::vector<float> m_em_dr;
 
     }; // class TopoTupler
 
