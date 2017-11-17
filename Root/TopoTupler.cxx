@@ -44,6 +44,8 @@ TopoTupler::TopoTupler() :
     m_dsid(-1),
     m_output_setup(false),
     m_filename(""),
+    m_mu_filter(false),
+    m_em_filter(false),
     m_event(new xAOD::TEvent(xAOD::TEvent::kAthenaAccess) ),
     m_l1_met_ex(-1.0),
     m_l1_met_ey(-1.0),
@@ -81,7 +83,7 @@ void TopoTupler::Init(TTree *tree)
         m_tdt.setTypeAndName("Trig::TrigDecisionTool/TrigDecisionTool");
         CHECK( m_tdt.setProperty("ConfigTool", m_trigConfTool.getHandle()) );
         CHECK( m_tdt.setProperty("TrigDecisionKey", "xTrigDecision") );
-        CHECK( m _tdt.retrieve() );
+        CHECK( m_tdt.retrieve() );
     }
 #else
     string toolName = "";
@@ -233,6 +235,11 @@ Bool_t TopoTupler::Process(Long64_t entry)
         setup_output_tree();
     }
 
+    if(mu_filter() || em_filter()) {
+        if(!pass_filter()) return kTRUE; 
+    }
+
+
     fill_l1_roi_objects();
 
     fill_tree_muon();
@@ -348,6 +355,21 @@ void TopoTupler::fill_tree_jet()
         m_jet_pt8.push_back(jet->et8x8() * gev);
     }
 
+}
+//////////////////////////////////////////////////////////////////////////////
+bool TopoTupler::pass_filter()
+{
+    string trigger = "";
+    bool pass = false;
+    if(em_filter()) {
+        trigger = "HLT_noalg_L1EM15VH";
+        if(m_tdt->isPassed(trigger)) { cout << "PASS EM FILTER " << trigger << endl; }
+    }
+    else if(mu_filter()) {
+        trigger = "HLT_noalg_L1MU4";
+        if(m_tdt->isPassed(trigger)) { cout << "PASS MU FILTER " << trigger << endl; }
+    }
+    return pass;
 }
 //////////////////////////////////////////////////////////////////////////////
 void TopoTupler::fill_tree_standard_triggers()

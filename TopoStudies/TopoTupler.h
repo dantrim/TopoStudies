@@ -64,12 +64,19 @@ namespace topo {
             void set_filename(std::string name) { m_filename = name; }
             std::string filename() { return m_filename; }
 
+            void set_em_filter(bool doit) { m_em_filter = doit; }
+            bool em_filter() { return m_em_filter; }
+            void set_mu_filter(bool doit) { m_mu_filter = doit; }
+            bool mu_filter() { return m_mu_filter; }
+
             void get_metadata();
             void setup_output_tree();
             float dphi_mpi_pi(float dphi);
             float delta_r(float dphi, float deta);
 
             xAOD::TEvent* event() { return m_event; }
+
+            bool pass_filter();
 
             void fill_l1_roi_objects();
             void fill_tree_muon();
@@ -96,6 +103,8 @@ namespace topo {
             int m_dsid;
             bool m_output_setup;
             std::string m_filename;
+            bool m_mu_filter;
+            bool m_em_filter;
             TStopwatch m_timer;
             xAOD::TEvent* m_event;
             xAOD::TStore m_store;
