@@ -112,7 +112,10 @@ void TopoTupler::setup_output_tree()
     ofn << "topotuple_";
     if(is_mc()) ofn << "mc";
     else ofn << "data";
-    ofn << "_" << dsid() << ".root";
+    ofn << "_" << dsid();
+    if(em_filter()) ofn << "_EMfilter";
+    else if(mu_filter()) ofn << "_MUfilter";
+    ofn << ".root";
 
     m_output_file = new TFile(ofn.str().c_str(), "RECREATE");
     m_output_tree = new TTree("trig", "trig");
@@ -362,12 +365,27 @@ bool TopoTupler::pass_filter()
     string trigger = "";
     bool pass = false;
     if(em_filter()) {
-        trigger = "HLT_noalg_L1EM15VH";
-        if(m_tdt->isPassed(trigger)) { cout << "PASS EM FILTER " << trigger << endl; }
+        trigger = "HLT_noalg_L1EM10VH";
+        //trigger = "HLT_noalg_L1EM20VH";
+        auto allChains = m_tdt->getChainGroup("HLT_noalg_.*");
+        stringstream sx;
+        cout << "--------------------------------" << endl;
+        for(auto & trig : allChains->getListOfTriggers()) {
+            if(m_tdt->isPassed(trig))  sx << " " << trig << "\n";
+            //sx << "  " << trig << " [" << (m_tdt->isPassed(trig) ? "1" : "0") << "]";
+        }
+        cout << sx.str() << endl;
+        if(m_tdt->isPassed(trigger)) {
+            pass = true;
+            if(dbg()) cout << "PASS EM FILTER " << trigger << endl;
+        }
     }
     else if(mu_filter()) {
         trigger = "HLT_noalg_L1MU4";
-        if(m_tdt->isPassed(trigger)) { cout << "PASS MU FILTER " << trigger << endl; }
+        if(m_tdt->isPassed(trigger)) {
+            pass = true;
+            if(dbg()) cout << "PASS MU FILTER " << trigger << endl;
+        }
     }
     return pass;
 }
