@@ -46,6 +46,7 @@ TopoTupler::TopoTupler() :
     m_filename(""),
     m_mu_filter(false),
     m_em_filter(false),
+    m_all_filter(false),
     m_event(new xAOD::TEvent(xAOD::TEvent::kAthenaAccess) ),
     m_l1_met_ex(-1.0),
     m_l1_met_ey(-1.0),
@@ -115,6 +116,7 @@ void TopoTupler::setup_output_tree()
     ofn << "_" << dsid();
     if(em_filter()) ofn << "_EMfilter";
     else if(mu_filter()) ofn << "_MUfilter";
+    else if(all_filter()) ofn << "_ALLfilter";
     ofn << ".root";
 
     m_output_file = new TFile(ofn.str().c_str(), "RECREATE");
@@ -238,7 +240,7 @@ Bool_t TopoTupler::Process(Long64_t entry)
         setup_output_tree();
     }
 
-    if(mu_filter() || em_filter()) {
+    if(mu_filter() || em_filter() || all_filter()) {
         if(!pass_filter()) return kTRUE; 
     }
 
@@ -367,14 +369,14 @@ bool TopoTupler::pass_filter()
     if(em_filter()) {
         trigger = "HLT_noalg_L1EM10VH";
         //trigger = "HLT_noalg_L1EM20VH";
-        auto allChains = m_tdt->getChainGroup("HLT_noalg_.*");
-        stringstream sx;
-        cout << "--------------------------------" << endl;
-        for(auto & trig : allChains->getListOfTriggers()) {
-            if(m_tdt->isPassed(trig))  sx << " " << trig << "\n";
-            //sx << "  " << trig << " [" << (m_tdt->isPassed(trig) ? "1" : "0") << "]";
-        }
-        cout << sx.str() << endl;
+        //auto allChains = m_tdt->getChainGroup("HLT_noalg_.*");
+        //stringstream sx;
+        //cout << "--------------------------------" << endl;
+        //for(auto & trig : allChains->getListOfTriggers()) {
+        //    if(m_tdt->isPassed(trig))  sx << " " << trig << "\n";
+        //    //sx << "  " << trig << " [" << (m_tdt->isPassed(trig) ? "1" : "0") << "]";
+        //}
+        //cout << sx.str() << endl;
         if(m_tdt->isPassed(trigger)) {
             pass = true;
             if(dbg()) cout << "PASS EM FILTER " << trigger << endl;
@@ -385,6 +387,13 @@ bool TopoTupler::pass_filter()
         if(m_tdt->isPassed(trigger)) {
             pass = true;
             if(dbg()) cout << "PASS MU FILTER " << trigger << endl;
+        }
+    }
+    else if(all_filter()) {
+        trigger = "HLT_noalg_.*";
+        auto allChains = m_tdt->getChainGroup(trigger);
+        for(auto & trig : allChains->getListOfTriggers()) {
+            if(m_tdt->isPassed(trig)) { pass = true; break; }
         }
     }
     return pass;

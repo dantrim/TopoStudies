@@ -25,6 +25,7 @@ void help()
     cout << "   -f          input filelist,dir, or file [required]" << endl;
     cout << "   --em-filter" << endl;
     cout << "   --mu-filter" << endl;
+    cout << "   --all-filter" << endl;
     cout << "   -n          number of events to process (default: all)" << endl;
     cout << "   -d|--dbg    set debug level ON (default: OFF)" << endl;
     cout << "   -h|--help   print this help message" << endl;
@@ -38,6 +39,7 @@ int main(int argc, char** argv)
     bool dbg = false;
     bool em_filter = false;
     bool mu_filter = false;
+    bool all_filter = false;
 
 
     int optin(1);
@@ -46,6 +48,7 @@ int main(int argc, char** argv)
         if      (opt == "-f") { filelist = argv[++optin]; }
         else if (opt == "--em-filter") { em_filter = true; }
         else if (opt == "--mu-filter") { mu_filter = true; }
+        else if (opt == "--all-filter") { all_filter = true; }
         else if (opt == "-n") { nevents = atoi(argv[++optin]); }
         else if (opt == "-d" || opt == "--dbg") { dbg = true; }
         else if (opt == "-h" || opt == "--help") { help(); return 0; }
@@ -58,6 +61,11 @@ int main(int argc, char** argv)
 
     if(filelist == "") {
         cout << "You did not provide an input, exiting" << endl;
+        return 1;
+    }
+
+    if(all_filter && (mu_filter || em_filter)) {
+        cout << "You requested all filter and either MU or EM filter." << endl;
         return 1;
     }
 
@@ -75,11 +83,13 @@ int main(int argc, char** argv)
     Long64_t n_entries = chain->GetEntries();
     chain->ls();
     if(nevents < 0) nevents = n_entries;
+    cout << "  >>> processing " << nevents << " events" << endl;
     topo::TopoTupler* ana = new topo::TopoTupler();
     ana->set_dbg(dbg);
     ana->set_filename(filelist);
     ana->set_mu_filter(mu_filter);
     ana->set_em_filter(em_filter);
+    ana->set_all_filter(all_filter);
     chain->Process(ana, "", nevents);
 
 

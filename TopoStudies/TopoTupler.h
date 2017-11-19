@@ -68,6 +68,8 @@ namespace topo {
             bool em_filter() { return m_em_filter; }
             void set_mu_filter(bool doit) { m_mu_filter = doit; }
             bool mu_filter() { return m_mu_filter; }
+            void set_all_filter(bool doit) { m_all_filter = doit; }
+            bool all_filter() { return m_all_filter; }
 
             void get_metadata();
             void setup_output_tree();
@@ -105,6 +107,7 @@ namespace topo {
             std::string m_filename;
             bool m_mu_filter;
             bool m_em_filter;
+            bool m_all_filter;
             TStopwatch m_timer;
             xAOD::TEvent* m_event;
             xAOD::TStore m_store;
