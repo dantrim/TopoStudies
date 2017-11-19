@@ -460,7 +460,13 @@ def make_eff_or_plot(samples, lep_trig_den, var, do_left) :
             n_ele = event.n_electrons
             n_muo = event.n_muons
 
+            dangle_max = -99.0
+            dangle_ele = -99.0
+            dangle_muo = -99.0
+
             pass_trigger = False
+            pass_ele = False
+            pass_muo = False
             # pass ele
             if n_ele >= 1 :
                 lep_pt = event.electron_pt[0]
@@ -468,7 +474,9 @@ def make_eff_or_plot(samples, lep_trig_den, var, do_left) :
                     dangle = 0.0
                     if "dphi" in var : dangle = abs(event.dphi_ele_met[0])
                     else : dangle = event.dr_ele_jet[0]
-                    h.Fill(dangle)
+                    dangle_ele = dangle
+                    pass_ele = True
+                    #h.Fill(dangle)
             # pass muo
             if n_muo >= 1 :
                 lep_pt = event.muon_pt[0]
@@ -476,7 +484,13 @@ def make_eff_or_plot(samples, lep_trig_den, var, do_left) :
                     dangle = 0.0
                     if "dphi" in var : dangle = abs(event.dphi_muo_met[0])
                     else : dangle = event.dr_muo_jet[0]
-                    h.Fill(dangle)
+                    pass_muo = True
+                    dangle_muo = dangle
+                    #h.Fill(dangle)
+
+            if pass_ele or pass_muo :
+                fill_value = max([dangle_ele, dangle_muo])
+                h.Fill(fill_value)
 
         histos.append(h)
 
