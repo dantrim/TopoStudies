@@ -134,7 +134,7 @@ def make_plot(samples, var, bounds, var_name) :
     
 
 def make_eff_plot(samples, lep_trig_den, var, bounds, var_name, cut_left) :
-
+    
     var_name_ok = var.replace("(","").replace(")","").replace("abs(","").replace(")","")
     c = r.TCanvas("c_eff_%s_%s" % (lep_trig_den, var_name_ok), "", 800, 600)
     c.cd()
@@ -178,11 +178,11 @@ def make_eff_plot(samples, lep_trig_den, var, bounds, var_name, cut_left) :
     selection_name = ""
 
     if "MU" in lep_trig_den :
-        selection_tcut += " && n_muons>=1 && muon_pt[0]>=6"
-        selection_name = "2J12 and MU6"
+        selection_tcut += " && n_muons>=1 && muon_pt[0]>=10"
+        selection_name = "2J12 and MU10"
     elif "EM" in lep_trig_den :
-        selection_tcut += " && n_electrons>=1 && electron_pt[0]>=15"
-        selection_name = "2J12 and EM15"
+        selection_tcut += " && n_electrons>=1 && electron_pt[0]>=24"
+        selection_name = "2J12 and EM24"
 
     histos = []
     den_counts = []
@@ -216,8 +216,12 @@ def make_eff_plot(samples, lep_trig_den, var, bounds, var_name, cut_left) :
         sample.tree.Draw(cmd, cut * sel, "goff")
 
         hd = r.TH1F("h_den_%s_%s" % (sample.name, var_name_ok), "", 20, 0, 20)
+        trig = lep_trig_den
         cmd = "%s>>%s" % (lep_trig_den, hd.GetName())
-        cut = r.TCut("%s==1" % lep_trig_den)
+        trig_cut = "%s==1" % lep_trig_den
+#        trig_cut = "(%s==1 || L1_EM22VHI==1)" % lep_trig_den
+        cut = r.TCut(trig_cut)
+#        cut = r.TCut("%s==1" % lep_trig_den)
         sample.tree.Draw(cmd, cut * sel, "goff")
         trig_counts = hd.Integral()
         #print "TRIGGER COUNTS %s for sample %s = %.f" % (lep_trig_den, sample.name, trig_counts)
@@ -321,7 +325,7 @@ def make_eff_plot(samples, lep_trig_den, var, bounds, var_name, cut_left) :
 
     #########################
     # save
-    save_name = "topo_plot_eff_%s_%s.pdf" % ( ''.join(selection_name.strip().split()), var_name_ok)
+    save_name = "topo_plot_eff_%s_%s_%s.pdf" % ( ''.join(selection_name.strip().split()), lep_trig_den, var_name_ok)
     save_out = " >> Saving plot %s : " % save_name
     save_name = "./topo_roi_eff_plots/%s" % save_name
     save_out += os.path.abspath(save_name)
@@ -342,15 +346,275 @@ def make_eff_plot(samples, lep_trig_den, var, bounds, var_name, cut_left) :
     #leg.Draw()
     #c.Update()
     print save_out
-    
-    
-    
 
+def make_eff_or_plot(samples, lep_trig_den, var, do_left) :
+
+    lep_trig_den_ok = 'or'.join(lep_trig_den)
+    var_name_ok = var.replace("(","").replace(")","").replace("abs(","").replace(")","")
+
+    c = r.TCanvas("c_or_eff_%s_%s" % ( lep_trig_den_ok, var_name_ok ), "", 800, 600)
+    c.cd()
+    upper = r.TPad("upper", "upper", 0.0, 0.0, 1.0, 1.0)
+    middle = r.TPad("middle", "middle", 0.0, 0.0, 1.0, 1.0)
+    lower = r.TPad("lower", "lower", 0.0, 0.0, 1.0, 1.0)
+
+    up_height = 0.9
+    mid_height_low = 0.25
+    mid_height_high = 0.40
+    dn_height = 0.25
+    upper.SetPad(0.0, mid_height_high, 1.0, 1.0)
+    middle.SetPad(0.0, mid_height_low, 1.0, mid_height_high)
+    lower.SetPad(0.0, 0.0, 1.0, mid_height_low)
+
+    upper.SetTickx(0)
+    upper.SetGridx(1)
+    upper.SetGridy(1)
+    middle.SetGridx(1)
+    middle.SetTicky(0)
+    lower.SetGridx(1)
+    lower.SetTicky(0)
+
+    upper.SetFrameFillColor(0)
+    upper.SetFillColor(0)
+
+    right_margin = 0.05
+    upper.SetRightMargin(right_margin)
+    middle.SetRightMargin(right_margin)
+    lower.SetRightMargin(right_margin)
+
+    left_margin = 0.14
+    upper.SetLeftMargin(left_margin)
+    middle.SetLeftMargin(left_margin)
+    lower.SetLeftMargin(left_margin)
+
+    upper.SetBottomMargin(0.04)
+    middle.SetBottomMargin(0.15)
+    lower.SetBottomMargin(0.47)
+
+    upper.SetTopMargin(0.09)
+    middle.SetTopMargin(0.05)
+    lower.SetTopMargin(0.02)
+
+    upper.Draw()
+    middle.Draw()
+    lower.Draw()
+    c.Update()
+
+    variables = {}
+    nice_name = ""
+    bounds = []
+    if "dphi" in var :
+        variables['e'] = "abs(dphi_ele_met[0])"
+        variables['m'] = "abs(dphi_muo_met[0])"
+        nice_name = "|#Delta#phi(l,-#sum E_{T})|"
+        bounds = [0.1, 0, 3.2]
+    elif "dr" in var :
+        variables['e'] = "dr_ele_jet[0]"
+        variables['m'] = "dr_muo_jet[0]"
+        nice_name = "#DeltaR(l,Jj)"
+        bounds = [0.2, 0, 7]
+
+
+    selection_tcut = "n_jets>=2 && jet_pt[0]>=12 && jet_pt[1]>=12"
+    ele_pt_threshold = 22
+    muo_pt_threshold = 6
+    selection_tcut += " && ( (n_electrons>=1 && electron_pt[0]>=%d) || (n_muons>=1 && muon_pt[0]>=%d) )" % (ele_pt_threshold, muo_pt_threshold)
+    selection_name = "2J12 and MU%d or EM%d" % (muo_pt_threshold, ele_pt_threshold)
+
+    histos = []
+    den_counts = []
+    n_bins = (bounds[2] - bounds[1]) / bounds[0]
+    n_bins = int(n_bins)
+    maxy = -1
+    title_offset = 0
+    label_offset = 0
+
+    for sample in samples :
+        h = r.TH1F("h_%s_%s" % ( sample.name, var_name_ok), ";%s;a.u." % nice_name, n_bins, bounds[1], bounds[2]) 
+        title_offset = h.GetXaxis().GetTitleOffset() 
+        label_offset = h.GetXaxis().GetLabelOffset()
+        h.GetXaxis().SetTitleFont(42)
+        h.GetXaxis().SetLabelFont(42)
+        h.GetXaxis().SetLabelOffset(999)
+        h.GetXaxis().SetTitleOffset(999)
+        h.GetYaxis().SetTitleFont(42)
+        h.GetYaxis().SetLabelFont(42)
+
+        h.GetYaxis().SetTitleSize(1.15 * h.GetYaxis().GetTitleSize())
+        if sample.signal :
+            h.SetLineStyle(2)
+        elif sample.name == "ttbar" :
+            h.SetFillColorAlpha(40, 0.17)
+        h.SetLineWidth(2)
+        h.SetLineColor(sample.color)
+
+        for ievent, event in enumerate(sample.tree) :
+            n_jets = event.n_jets
+            if not n_jets >= 2 : continue
+            lead_jet_pt = event.jet_pt[0]
+            sublead_jet_pt = event.jet_pt[1]
+            pass_lj = (lead_jet_pt >= 12)
+            pass_sj = (sublead_jet_pt >= 12)
+            if not (pass_lj and pass_sj) : continue
+
+            n_ele = event.n_electrons
+            n_muo = event.n_muons
+
+            pass_trigger = False
+            # pass ele
+            if n_ele >= 1 :
+                lep_pt = event.electron_pt[0]
+                if lep_pt >= ele_pt_threshold :
+                    dangle = 0.0
+                    if "dphi" in var : dangle = abs(event.dphi_ele_met[0])
+                    else : dangle = event.dr_ele_jet[0]
+                    h.Fill(dangle)
+            # pass muo
+            if n_muo >= 1 :
+                lep_pt = event.muon_pt[0]
+                if lep_pt >= muo_pt_threshold :
+                    dangle = 0.0
+                    if "dphi" in var : dangle = abs(event.dphi_muo_met[0])
+                    else : dangle = event.dr_muo_jet[0]
+                    h.Fill(dangle)
+
+        histos.append(h)
+
+        hd = r.TH1F("h_den_%s_%s" % ( sample.name, var_name_ok), "", 20, 0, 20)
+        #trig_cut = "(%s==1 || %s==1)" % (lep_trig_den[0], lep_trig_den[1])
+        trig_cut = "(%s==1 || %s==1 || L1_2EM15VH==1 || L1_EM15VH_MU10==1)" % (lep_trig_den[0], lep_trig_den[1])
+        trig_cut = r.TCut(trig_cut)
+        cmd = "%s>>%s" % (lep_trig_den[0], hd.GetName())
+        sel = r.TCut("1")
+        sample.tree.Draw(cmd, trig_cut * sel, "goff")
+        trig_counts = hd.Integral()
+        den_counts.append(trig_counts)
+
+    ##############################
+    # middle
+    middle.cd()
+    eff_histos = []
+    eff_histo_bkg = None
+    for isample, sample in enumerate(samples) :
+        he = histos[isample].Clone("eff_%s" % histos[isample].GetName())
+        he.Reset("ICE")
+        he.SetMaximum(2)
+        he.SetMinimum(0)
+        he.SetFillStyle(0)
+        he.GetXaxis().SetTitleOffset(999) 
+        he.GetXaxis().SetLabelOffset(999)
+        he.GetYaxis().SetTitleSize(3.2 * he.GetYaxis().GetTitleSize())
+        he.GetYaxis().SetLabelSize(4 * he.GetYaxis().GetLabelSize())
+
+        arrow = "#downarrow"
+        if do_left :
+            arrow = "#uparrow"
+        title = "#frac{X}{1L OR 2L} %s" % ( arrow ) 
+        he.GetYaxis().SetTitle(title)
+        he.GetYaxis().SetTitleOffset(0.33)
+
+        he.GetYaxis().SetNdivisions(4)
+
+        nbins = histos[isample].GetNbinsX()
+        for ibin in xrange(nbins) :
+            integral_eff = 0
+            if do_left :
+                integral_eff = histos[isample].Integral(0,ibin+1)
+            else :
+                integral_eff = histos[isample].Integral(ibin+1,-1)
+            gain = float(integral_eff) / float(den_counts[isample])
+            he.SetBinContent(ibin+1, gain)
+        eff_histos.append(he)
+        if "ttbar" in sample.name :
+            eff_histo_bkg = he
+
+    for ihist, hist in enumerate(eff_histos) :
+        if ihist == 0 :
+            hist.Draw("hist")
+        else :
+            hist.Draw("hist same")
+        c.Update()
+    line = r.TLine(bounds[1], 1.0, bounds[2], 1.0)
+    line.SetLineStyle(3)
+    line.SetLineColor(r.kRed)
+    line.SetLineWidth(2)
+    line.Draw()
+    middle.Update()
+    c.Update()
+
+    # lower
+    lower.cd()
+    sob_histos = []
+    for ihist, hist in enumerate(eff_histos) :
+        if "ttbar" in hist.GetName() : continue
+        hs = hist.Clone("sob_%s" % hist.GetName())
+        hs.SetMinimum(0.98)
+        hs.SetMaximum(2.2)
+        hs.GetYaxis().SetTitle("#Delta S/B   ")
+        hs.GetXaxis().SetTitleOffset(1.6*title_offset)
+        hs.GetXaxis().SetLabelOffset(1.1*label_offset)
+        #hs.GetYaxis().SetTitleOffset(0.85 * hs.GetYaxis().GetTitleOffset())
+        hs.GetYaxis().SetLabelSize(0.65 * hs.GetYaxis().GetLabelSize())
+
+        hs.GetXaxis().SetTitle(nice_name)
+        hs.GetXaxis().SetTitleSize(3.2 * hs.GetXaxis().GetTitleSize())
+        hs.GetXaxis().SetLabelSize(2.6 * hs.GetXaxis().GetLabelSize())
         
 
-    
+        hs.Divide(eff_histo_bkg)
+        sob_histos.append(hs)
 
-def make_plots(samples, effa="") :
+    for ihist, hist in enumerate(sob_histos) :
+        if ihist == 0 :
+            hist.Draw("hist")
+        else :
+            hist.Draw("hist same")
+        c.Update()
+
+    line2 = r.TLine(bounds[1], 1.0, bounds[2], 1.0)
+    line2.SetLineStyle(3)
+    line2.SetLineColor(r.kRed)
+    line2.SetLineWidth(2)
+    line2.Draw()
+    middle.Update()
+
+    # UPPER
+    upper.cd()
+    for h in histos :
+        h.Scale(1/h.Integral())
+        if h.GetMaximum() > maxy : maxy = h.GetMaximum()
+    leg = r.TLegend(0.65, 0.65, 0.88, 0.88)
+    for ihist, hist in enumerate(histos) :
+        hist.SetMaximum(1.3 * maxy)
+        if ihist == 0 :
+            hist.Draw("hist")
+        else :
+            hist.Draw("hist same")
+        c.Update()
+        if samples[ihist].name == "ttbar" :
+            leg.AddEntry(hist, samples[ihist].name, "fl")
+        else :
+            leg.AddEntry(hist, samples[ihist].name, 'l')
+    leg.Draw()
+    c.Update()
+
+    # text
+    text = r.TLatex()
+    text.SetTextFont(42)
+    text.SetTextSize(0.75 * text.GetTextSize())
+    text.DrawLatexNDC(0.16, 0.85, selection_name)
+    c.Update()
+
+    # save
+    save_name = "topo_plot_or_eff_%s_%s.pdf" % ( ''.join(selection_name.strip().split()), var_name_ok )
+    save_out = " >> Saving plot %s : " % save_name
+    save_name = "./topo_roi_or_eff_plots/%s" % save_name
+    save_out = os.path.abspath(save_name)
+    c.SaveAs(save_name)
+    print save_out
+
+
+def make_plots(samples, effa="", effb="") :
 
     variables = ["L1_2EM15VH", "L1_MU20", "L1_2MU10", "L1_EM15VH_MU10", "L1_EM22VHI",
             "n_muons", "muon_pt[0]", "abs(muon_phi[0])", "abs(muon_eta[0])",
@@ -440,14 +704,20 @@ def make_plots(samples, effa="") :
     names["em_dr[0]"] = "#DeltaR_{e #mu}"
 
     n_vars = len(variables)
-    if effa=="" :
+    effs = []
+    if effa!="" :
+        effs.append(effa)
+    if effb!="" :
+        effs.append(effb)
+
+    if len(effs) == 0 :
         for ivar, var in enumerate(variables) :
             print "[%d/%d] %s" % (ivar+1, n_vars, var)
             bound = bounds[var]
             name = names[var]
             make_plot(samples, var, bound, name)
-    elif effa!="" :
-        lep_trig_den = effa
+    elif len(effs) == 1 :
+        lep_trig_den = effs[0]
         variables = [ "abs(dphi_muo_met[0])",
             "abs(dphi_ele_met[0])",
             "dr_muo_jet[0]",
@@ -462,13 +732,27 @@ def make_plots(samples, effa="") :
             name = names[var]
             make_eff_plot(samples, lep_trig_den, var, bound, name, do_left)
 
+    elif len(effs) == 2 :
+        lep_trig_den = effs
+        variables = [ "dphi_jet", "dr_jet" ]
+        n_vars = len(variables)
+        for ivar, var in enumerate(variables) :
+            print "[%d/%d] %s" % (ivar+1, n_vars, var)
+            do_left = False
+            if "dphi" in var :
+                do_left = True
+            make_eff_or_plot(samples, lep_trig_den, var, do_left)
+
 def main() :
     parser = OptionParser()
     parser.add_option("--eff-a", default="", help = "Set a trigger A to compare eff to")
+    parser.add_option("--eff-b", default="", help = "Set a trigger B (OR'd with A)")
     (options, args) = parser.parse_args()
     eff_a = options.eff_a
+    eff_b = options.eff_b
 
-    sample_dir = "../samples/"
+#    sample_dir = "../samples/"
+    sample_dir = "/data/uclhc/uci/user/dantrim/L1TopoStudies/TopoStudies/samples/"
     name_reg = "topotuple_mc_"
     ttbar = Sample("ttbar", "%s%s410009.root" % (sample_dir, name_reg), r.kBlack, False)
     hhsm = Sample("hhSM", "%s%s342053.root" % (sample_dir, name_reg), r.kRed, False)
@@ -483,7 +767,7 @@ def main() :
         print "ERROR requesed eff-a does not have 'L1' in name"
         sys.exit()
     
-    make_plots(samples, effa = eff_a)
+    make_plots(samples, effa = eff_a, effb = eff_b)
     
 
 if __name__ == "__main__" :
