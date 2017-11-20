@@ -1,9 +1,9 @@
 #!/usr/bin/env python
 
 import ROOT as r
+r.PyConfig.IgnoreCommandLineOptions = True
 r.gROOT.SetBatch(True)
 r.gStyle.SetOptStat(False)
-r.PyConfig.IgnoreCommandLineOptions = True
 
 from optparse import OptionParser
 import sys
@@ -627,8 +627,76 @@ def make_eff_or_plot(samples, lep_trig_den, var, do_left) :
     c.SaveAs(save_name)
     print save_out
 
+def make_2d_plot(samples, varpair, boundspair, namepair) :
 
-def make_plots(samples, effa="", effb="") :
+    c = r.TCanvas("c2d_%s_%s" % (namepair[0], namepair[1]), "", 800, 600)
+    c.SetGrid(1,1)
+    c.cd()
+
+    namex_ok = varpair[0].replace("abs(","").replace(")","").replace("[","").replace("]","")
+    namey_ok = varpair[1].replace("abs(","").replace(")","").replace("[","").replace("]","")
+
+    bkg = None
+    for s in samples :
+        if "ttbar" in s.name :
+            bkg = s
+    sig = None
+    for s in samples :
+        if "SM" in s.name :
+            sig = s
+
+    boundsx = boundspair[0]
+    boundsy = boundspair[1]
+
+    nbinsx = boundsx[2] - boundsx[1]
+    nbinsx = int( float(nbinsx) / boundsx[0] )
+
+    nbinsy = boundsy[2] - boundsy[1]
+    nbinsy = int( float(nbinsy) / boundsy[0] )
+
+    samples = [bkg, sig]
+    histos = []
+    for isample, sample in enumerate(samples) :
+        h = r.TH2F("h2d_%s_%s_%s" % (sample.name, namex_ok, namey_ok), ";%s;%s" % (namepair[0], namepair[1]), nbinsx, boundsx[1], boundsx[2], nbinsy, boundsy[1], boundsy[2])    
+        if sample.signal or "hhSM" in sample.name :
+            h.SetFillColor(r.kBlue)
+            h.SetFillStyle(0)
+            h.SetLineWidth(2)
+        else :
+            h.SetFillColor(r.kRed)
+
+        xax = h.GetXaxis()
+        yax = h.GetYaxis()
+
+        xax.SetTitleFont(42)
+        xax.SetLabelFont(42)
+        yax.SetTitleFont(42)
+        yax.SetLabelFont(42)
+
+        cmd = "%s:%s>>%s" % (varpair[1], varpair[0], h.GetName())
+        sel = r.TCut("1")
+        cut = "1"
+        cut = r.TCut(cut)
+        sample.tree.Draw(cmd, sel * cut, "goff")
+
+        print "%s : %.2f" % (sample.name, h.Integral())
+
+        h.Scale(1/h.Integral())
+        histos.append(h)
+
+    for ihist, hist in enumerate(histos) :
+        if ihist == 0 :
+            hist.Draw("box1")
+        else :
+            hist.Draw("box0 same")
+        c.Update()
+
+
+    save_name = "./topo_2d_plots/topo_2d_%s_%s.pdf" % (namex_ok, namey_ok)
+    c.SaveAs(save_name)
+                
+
+def make_plots(samples, effa="", effb="", do_2d = False) :
 
     variables = ["L1_2EM15VH", "L1_MU20", "L1_2MU10", "L1_EM15VH_MU10", "L1_EM22VHI",
             "n_muons", "muon_pt[0]", "abs(muon_phi[0])", "abs(muon_eta[0])",
@@ -724,7 +792,18 @@ def make_plots(samples, effa="", effb="") :
     if effb!="" :
         effs.append(effb)
 
-    if len(effs) == 0 :
+    if do_2d :
+        variable_pairs = [ [ "abs(dphi_ele_met[0])", "dr_ele_jet[0]" ],
+                ["abs(dphi_muo_met[0])", "dr_muo_jet[0]"] ]
+
+        for varpair in variable_pairs :
+            boundsx = bounds[varpair[0]]
+            boundsy = bounds[varpair[1]]
+            namex = names[varpair[0]]
+            namey = names[varpair[1]]
+            make_2d_plot(samples, varpair, [boundsx, boundsy], [namex, namey])
+
+    elif len(effs) == 0 :
         for ivar, var in enumerate(variables) :
             print "[%d/%d] %s" % (ivar+1, n_vars, var)
             bound = bounds[var]
@@ -761,9 +840,11 @@ def main() :
     parser = OptionParser()
     parser.add_option("--eff-a", default="", help = "Set a trigger A to compare eff to")
     parser.add_option("--eff-b", default="", help = "Set a trigger B (OR'd with A)")
+    parser.add_option("--twod", action="store_true", help = "Make 2D plots")
     (options, args) = parser.parse_args()
     eff_a = options.eff_a
     eff_b = options.eff_b
+    do_2d = options.twod
 
 #    sample_dir = "../samples/"
     sample_dir = "/data/uclhc/uci/user/dantrim/L1TopoStudies/TopoStudies/samples/"
@@ -776,12 +857,11 @@ def main() :
 
     samples = [ttbar, hhsm, hh300, hh600, hh800]
 
-
     if eff_a != "" and "L1_" not in eff_a :
         print "ERROR requesed eff-a does not have 'L1' in name"
         sys.exit()
     
-    make_plots(samples, effa = eff_a, effb = eff_b)
+    make_plots(samples, effa = eff_a, effb = eff_b, do_2d = do_2d)
     
 
 if __name__ == "__main__" :
