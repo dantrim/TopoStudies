@@ -14,7 +14,10 @@ import numpy as np
 sampledir = "/data/uclhc/uci/user/dantrim/n0234val/" 
 dsid_to_name = {}
 dsid_to_name["342053"] = "hhSM"
+dsid_to_name["343764"] = "X260"
 dsid_to_name["343766"] = "X300"
+dsid_to_name["343772"] = "X600"
+dsid_to_name["410009"] = "ttbar"
 
 class Sample :
     def __init__(self, dsid = "", name = "", files = []) :
