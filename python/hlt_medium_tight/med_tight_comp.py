@@ -10,6 +10,10 @@ import os
 import glob
 
 import numpy as np
+n_em_single = 0
+n_em_asym = 0
+n_em_sym = 0
+
 
 sampledir = "/data/uclhc/uci/user/dantrim/n0234val/" 
 dsid_to_name = {}
@@ -291,28 +295,37 @@ def pass_mm_logic(lead_pt, sub_pt, evt) :
 
 def pass_em_logic(lead_pt, sub_pt, evt, ele_id) :
 
+    global n_em_single, n_em_asym, n_em_sym
+
     year = evt.year
 
     if year == 2015 :
         if (lead_pt >= 26) and (evt.trig_e24_lhmedium_L1EM20VHI==1) :
+            n_em_single += 1
             return True
         elif (lead_pt >= 26) and (sub_pt >= 10) and (evt.trig_e24_lhmedium_L1EM20VHI_mu8noL1==1) :
+            n_em_asym += 1
             return True
         else :
             if (lead_pt >= 20) and (sub_pt >= 17) and (evt.trig_e17_lhloose_mu14==1) :
+                n_em_sym += 1
                 return True
 
     elif year == 2016 :
         if ele_id.lower() == "tight" :
             if (lead_pt >= 28) and (evt.trig_e26_lhtight_nod0_ivarloose==1) :
+                n_em_single += 1
                 return True
         elif ele_id.lower() == "medium" :
             if (lead_pt >= 62) and (evt.trig_e60_lhmedium_nod0==1) :
+                n_em_single += 1
                 return True
         elif (lead_pt >= 28) and (sub_pt >= 10) and (evt.trig_e26_lhmedium_nod0_L1EM22VHI_mu8noL1==1) :
+            n_em_asym += 1
             return True
         else :
             if (lead_pt >= 20) and (sub_pt >= 17) and (evt.trig_e17_lhloose_mu14==1) :
+                n_em_syn += 1
                 return True
 
     return False
@@ -472,11 +485,18 @@ def get_smart_counts_for_ele_id(sample, ele_id) :
     print "     n_den_current   : %d" % n_den_current
     print "     n_pass_current  : %d  (%.2f)" % ( n_pass_current, ( (float(n_pass_current) / float(n_den_current)) * 100. ) )
             
-            
+    global n_em_single, n_em_asym, n_em_sym
+    print ""
+    print 50 * "="
+    print " n_pass em_single    : %d" % n_em_single
+    print " n_pass em_asym      : %d" % n_em_asym
+    print " n_pass em_sym       : %d" % n_em_sym
 
 def get_smart_counts(sample) :
 
-    ele_id = ["medium", "tight"]
+    ele_id = ["medium"]#, "tight"]
+    ele_id = ["tight"]#, "tight"]
+    #ele_id = ["medium", "tight"]
     for el in ele_id :
         get_smart_counts_for_ele_id(sample, el)
 

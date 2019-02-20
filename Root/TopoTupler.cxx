@@ -19,6 +19,7 @@ using namespace std;
 #include "xAODRootAccess/TEvent.h"
 #include "xAODRootAccess/tools/ReturnCheck.h"
 #include "xAODEventInfo/EventInfo.h"
+ #include "xAODTruth/TruthEventContainer.h"
 
 //TOLS
 #include "TrigConfxAOD/xAODConfigTool.h"
@@ -240,9 +241,9 @@ Bool_t TopoTupler::Process(Long64_t entry)
         setup_output_tree();
     }
 
-    if(mu_filter() || em_filter() || all_filter()) {
-        if(!pass_filter()) return kTRUE; 
-    }
+    //if(mu_filter() || em_filter() || all_filter()) {
+    //    if(!pass_filter()) return kTRUE; 
+    //}
 
 
     fill_l1_roi_objects();
@@ -309,6 +310,10 @@ void TopoTupler::fill_l1_roi_objects()
     m_l1_met_ey = ey * gev;
     m_l1_met_sum = sqrt( ex * ex + ey * ey ) * gev;
     m_l1_met_phi = atan2(ey, ex);
+
+    // TRUTH
+    const xAOD::TruthParticleContainer* l1_e_truth = 0;
+    CHECK( event()->retrieve( l1_e_truth, "egammaTruthParticles") );
 
 }
 //////////////////////////////////////////////////////////////////////////////
